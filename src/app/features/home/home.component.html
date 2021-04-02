@@ -1,3 +1,24 @@
 <div class="row">
-  <div id="hotel_map"></div>
+  <div id="hotel_map" (click)="teste($event)"></div>
+</div>
+
+<div id="popup" class="ol-popup">
+  <a href="#" id="popup-closer" class="ol-popup-closer"></a>
+  <div id="popup-content"></div>
+</div>
+
+<div class="ctrlPanel">
+  <button mat-fab class="btn" (click)="hasToSelect = !hasToSelect">
+    Linhas
+  </button>
+
+  <mat-form-field class="selector" *ngIf="hasToSelect" appearance="fill">
+    <mat-label>Selecione uma linha de onibus</mat-label>
+    <mat-select (selectionChange)="getAny()">
+      <mat-option>--</mat-option>
+      <mat-option *ngFor="let route of routes" value="selectedRoute">
+        {{ route }}
+      </mat-option>
+    </mat-select>
+  </mat-form-field>
 </div>
