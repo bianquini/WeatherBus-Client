@@ -4,13 +4,10 @@ import Map from 'ol/Map';
 import View from 'ol/View';
 import VectorLayer from 'ol/layer/Vector';
 import Style from 'ol/style/Style';
-import Icon from 'ol/style/Icon';
 import OSM from 'ol/source/OSM';
 import * as olProj from 'ol/proj';
 import TileLayer from 'ol/layer/Tile';
 import { BusService } from 'src/app/services/bus/bus.service';
-import { FormControl, Validators } from '@angular/forms';
-import Polyline from 'ol/format/Polyline';
 import Feature from 'ol/Feature';
 import Point from 'ol/geom/Point';
 import VectorSource from 'ol/source/Vector';
@@ -18,8 +15,6 @@ import {Circle as CircleStyle,Fill, Stroke} from 'ol/style';
 import { Route } from 'src/app/interfaces/route';
 import LineString from 'ol/geom/LineString';
 import Overlay from 'ol/Overlay';
-import { toStringHDMS } from 'ol/coordinate';
-import { toLonLat } from 'ol/proj';
 
 @Component({
   selector: 'app-home',
@@ -31,18 +26,12 @@ export class HomeComponent implements OnInit {
   map: Map | undefined;
   container: HTMLElement | undefined;
   content: HTMLElement | undefined;
-  closer: HTMLElement | undefined;
   //TODO retornar Route para tipo ROute
   routes: string[] = ["Cicero - Berwyn"];
   selectedRoute: string | undefined;
   hasToSelect: boolean = false;
   hasSelectedFirst: boolean = false;
-  overlay = new Overlay({
-    autoPan: true,
-    autoPanAnimation: {
-      duration: 250,
-    },
-  });
+
   constructor(private bus:BusService){
 
   }
@@ -50,7 +39,6 @@ export class HomeComponent implements OnInit {
   ngOnInit(){
     this.container = document.getElementById('popup')!;
     this.content = document.getElementById('popup-content')!;
-    this.closer = document.getElementById('popup-closer')!;
     this.map = new Map({
       target: 'hotel_map',
       layers: [
@@ -60,12 +48,21 @@ export class HomeComponent implements OnInit {
       ],
       view: new View({
         center: olProj.fromLonLat([-87.65708976439701,41.85950283525066]),
-        zoom: 11
+        zoom: 11,
       })
     });
     this.getBusLine(this.map);
 
-    this.overlay.setElement(this.container!);
+    var overlay = new Overlay({
+      id: 1,
+      element : this.container,
+      autoPan: true,
+      autoPanAnimation: {
+        duration: 250,
+      },
+    });
+
+    this.map.addOverlay(overlay);
   }
 
   public getBusLine(map: Map){
@@ -187,11 +184,20 @@ export class HomeComponent implements OnInit {
 
   public teste(ev: MouseEvent){
     this.map?.on('singleclick',  (evt) => {
-      var coordinate = evt.coordinate;
-      // var hdms = toStringHDMS(toLonLat(coordinate));
-
-      // this.content.innerHTML = '<p>You clicked here:</p><code>' + hdms + '</code>';
-      // this.overlay.setPosition(coordinate);
+      var feature = this.map?.forEachFeatureAtPixel(evt.pixel, function(mapFeature){
+        return mapFeature;
+      })
+      if (feature && this.map != null) {
+        var point = <Point> feature.getGeometry();
+        var coordinates = point.getCoordinates();
+        var mapView = this.map.getView();
+        mapView.animate({zoom: 17, center: evt.coordinate})
+        //mapView.setZoom(15);
+        this.map?.getOverlayById(1).setPosition(coordinates);
+        if(this.content){
+        this.content.innerHTML = 'Texto de Exemplo'
+        }        
+      }
     });
   }
 
