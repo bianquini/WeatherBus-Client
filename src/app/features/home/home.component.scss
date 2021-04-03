@@ -17,11 +17,19 @@
   float: right;
   top: 30px;
   right: 70px;
-  background: gray;
+
+}
+ 
+.mat-option:hover {
+  color: #7b1fa2;
 }
 
-.selector {
-  color: black;
+::ng-deep{
+  mat-form-field .mat-form-field-flex{
+    color: accent;
+    background-color: #525151 !important;
+  }
+
 }
 
 .ol-popup {
@@ -65,4 +73,17 @@
 }
 .ol-popup-closer:after {
   content: "✖";
+}
+
+.markers-subtitle {
+  font-size: 16px;
+  position: absolute;
+  background-color: white;
+  box-shadow: 0 1px 4px rgba(0, 0, 0, 0.2);
+  padding: 15px;
+  border-radius: 10px;
+  border: 1px solid #cccccc;
+  bottom: 12px;
+  right: 80px;
+  min-width: 150px;
 }

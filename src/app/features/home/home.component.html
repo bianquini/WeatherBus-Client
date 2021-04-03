@@ -5,13 +5,21 @@
   <div id="popup-content"></div>
 </div>
 
+<div class="markers-subtitle">
+  <ul>
+    <li style="color: DodgerBlue">Ponto Inicial</li>
+    <li style="color: orange">Paradas</li>
+    <li style="color: red">Ponto Final</li>
+  </ul>
+</div>
+
 <div class="ctrlPanel">
   <button mat-fab class="btn" (click)="hasToSelect = !hasToSelect">
     Linhas
   </button>
 
-  <mat-form-field class="selector" *ngIf="hasToSelect" appearance="fill">
-    <mat-label>Selecione uma linha de onibus</mat-label>
+  <mat-form-field *ngIf="hasToSelect" appearance="fill" color="primary" >
+    <mat-label >Selecione uma linha de onibus</mat-label>
     <mat-select (selectionChange)="getAny()">
       <mat-option>--</mat-option>
       <mat-option *ngFor="let route of routes" value="selectedRoute">
