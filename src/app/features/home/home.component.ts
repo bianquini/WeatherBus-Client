@@ -27,14 +27,15 @@ export class HomeComponent implements OnInit {
   container: HTMLElement | undefined;
   content: HTMLElement | undefined;
   //TODO retornar Route para tipo ROute
-  routes: string[] = ['East Madison Street - West Madison Street'];
-  selectedRoute: string | undefined;
+  routes: Route[] = [];
+  selectedRoute: Route | undefined;
   hasToSelect: boolean = false;
   hasSelectedFirst: boolean = false;
 
   constructor(private bus: BusService) {}
 
   ngOnInit() {
+    this.getRoutes();
     this.container = document.getElementById('popup')!;
     this.content = document.getElementById('popup-content')!;
     this.map = new Map({
@@ -226,12 +227,18 @@ export class HomeComponent implements OnInit {
   }
 
   public getRoutes() {
-    this.bus.getBusLines().subscribe((data: Route) => {
-      //this.routes.push();
+    this.bus.getRoutes().subscribe((data: Route[]) => {
+      data.forEach((x) => this.routes.push(x));
     });
   }
 
-  public getAny() {}
+  public getFullRoute() {
+    if (this.selectedRoute) {
+      this.bus.getFullRoute(this.selectedRoute.id).subscribe((data: Route) => {
+        this.selectedRoute = data;
+      });
+    }
+  }
 
   public teste(ev: MouseEvent) {
     this.map?.on('singleclick', (evt) => {

@@ -18,12 +18,12 @@
     Linhas
   </button>
 
-  <mat-form-field *ngIf="hasToSelect" appearance="fill" color="primary" >
-    <mat-label >Selecione uma linha de onibus</mat-label>
-    <mat-select (selectionChange)="getAny()">
+  <mat-form-field *ngIf="hasToSelect" appearance="fill" color="primary">
+    <mat-label>Selecione uma linha de onibus</mat-label>
+    <mat-select (selectionChange)="getFullRoute()">
       <mat-option>--</mat-option>
       <mat-option *ngFor="let route of routes" value="selectedRoute">
-        {{ route }}
+        {{ route.name }}
       </mat-option>
     </mat-select>
   </mat-form-field>
