@@ -1,5 +1,4 @@
 import { Prediction } from "./prediction";
-import { Stop } from "./stop";
 
 export interface Bus {
 
@@ -14,8 +13,6 @@ export interface Bus {
   Destination: string;
 
   IsDelayed: boolean;
-
-  Stops: Stop[];
 
   Predictions: Prediction[];
 }

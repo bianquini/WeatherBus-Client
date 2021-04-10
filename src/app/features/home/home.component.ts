@@ -46,7 +46,8 @@ export class HomeComponent implements OnInit {
         }),
       ],
       view: new View({
-        center: olProj.fromLonLat([-87.65708976439701, 41.85950283525066]),
+        projection: 'EPSG:4326',
+        center: [-87.61439, 41.73271],
         zoom: 11,
       }),
     });
@@ -64,17 +65,14 @@ export class HomeComponent implements OnInit {
   }
 
   public getBusLine() {
-    var markers:Feature[] = [];
+    var markers: Feature[] = [];
 
-    this.selectedRoute?.points.forEach(point => {
-      markers.push(new Feature({
-        geometry: new Point(
-          olProj.fromLonLat(
-            [point.lon, point.lat],
-            'EPSG:3857'
-          )
-        ),
-      }))
+    this.selectedRoute?.points.forEach((point) => {
+      markers.push(
+        new Feature({
+          geometry: new Point([point.lon, point.lat]),
+        })
+      );
     });
 
     var initialBorder = [markers[0]];
@@ -124,7 +122,7 @@ export class HomeComponent implements OnInit {
         }),
       }),
     ];
-    var points =this.selectedRoute?.points;
+    var points = this.selectedRoute?.points;
     var vectorLayer = new VectorLayer({
       source: new VectorSource({
         features: markers,
@@ -132,17 +130,18 @@ export class HomeComponent implements OnInit {
       style: function (feature) {
         var point = <Point>feature.getGeometry();
         var coordinates = point.getCoordinates();
-        if(points){
-
+        if (points) {
           /*TODO verificar logica abaixo */
-        for (let index = 0; index < points.length; index++) {
-          var pointCD = olProj.fromLonLat([points[index].lon,points[index].lat], 'EPSG:3857')
-           if (pointCD[0] === coordinates[0] &&
-               pointCD[1] === coordinates[1]) {
-                return styles;
-              }
+          for (let index = 0; index < points.length; index++) {
+            var pointCD = [points[index].lon, points[index].lat];
+            if (
+              pointCD[0] === coordinates[0] &&
+              pointCD[1] === coordinates[1]
+            ) {
+              return styles;
+            }
+          }
         }
-      }
         return new Style();
       },
     });
@@ -174,7 +173,7 @@ export class HomeComponent implements OnInit {
       },
     });
 
-    if(this.map){
+    if (this.map) {
       this.map.addLayer(vectorLayer);
       this.map.addLayer(initialMarkersLayer);
       this.map.addLayer(finalMarkersLayer);
@@ -204,14 +203,10 @@ export class HomeComponent implements OnInit {
     });
   }
 
-  public getFullRoute(route:Route) {
-    if (route) {
-        this.bus.getFullRoute(route.id).subscribe((data: Route) => {
-        this.selectedRoute = data;
-        this.getBusLine();
-      });
-
-    }
+  public getFullRoute(route: Route) {
+    this.selectedRoute = route;
+    console.log(this.selectedRoute);
+    this.getBusLine();
   }
 
   public teste(ev: MouseEvent) {
