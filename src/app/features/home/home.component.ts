@@ -50,7 +50,6 @@ export class HomeComponent implements OnInit {
         zoom: 11,
       }),
     });
-    this.getBusLine(this.map);
 
     var overlay = new Overlay({
       id: 1,
@@ -64,61 +63,19 @@ export class HomeComponent implements OnInit {
     this.map.addOverlay(overlay);
   }
 
-  public getBusLine(map: Map) {
-    var markers = [
-      new Feature({
+  public getBusLine() {
+    var markers:Feature[] = [];
+
+    this.selectedRoute?.points.forEach(point => {
+      markers.push(new Feature({
         geometry: new Point(
           olProj.fromLonLat(
-            [-87.62485700000141, 41.88214599999967],
+            [point.lon, point.lat],
             'EPSG:3857'
           )
         ),
-      }),
-      new Feature({
-        geometry: new Point(
-          olProj.fromLonLat([-87.62574, 41.882135], 'EPSG:3857')
-        ),
-      }),
-      new Feature({
-        geometry: new Point(
-          olProj.fromLonLat([-87.627927, 41.882047], 'EPSG:3857')
-        ),
-      }),
-      new Feature({
-        geometry: new Point(olProj.fromLonLat([-87.6291, 41.882], 'EPSG:3857')),
-      }),
-      new Feature({
-        geometry: new Point(
-          olProj.fromLonLat([-87.63144, 41.88197], 'EPSG:3857')
-        ),
-      }),
-      new Feature({
-        geometry: new Point(
-          olProj.fromLonLat([-87.63236, 41.88197], 'EPSG:3857')
-        ),
-      }),
-      new Feature({
-        geometry: new Point(
-          olProj.fromLonLat([-87.63295, 41.88195], 'EPSG:3857')
-        ),
-      }),
-      new Feature({
-        geometry: new Point(
-          olProj.fromLonLat([-87.63236, 41.88197], 'EPSG:3857')
-        ),
-      }),
-
-      new Feature({
-        geometry: new Point(
-          olProj.fromLonLat([-87.63295, 41.88195], 'EPSG:3857')
-        ),
-      }),
-      new Feature({
-        geometry: new Point(
-          olProj.fromLonLat([-87.63478, 41.88193], 'EPSG:3857')
-        ),
-      }),
-    ];
+      }))
+    });
 
     var initialBorder = [markers[0]];
 
@@ -167,13 +124,26 @@ export class HomeComponent implements OnInit {
         }),
       }),
     ];
-
+    var points =this.selectedRoute?.points;
     var vectorLayer = new VectorLayer({
       source: new VectorSource({
         features: markers,
       }),
       style: function (feature) {
-        return styles;
+        var point = <Point>feature.getGeometry();
+        var coordinates = point.getCoordinates();
+        if(points){
+
+          /*TODO verificar logica abaixo */
+        for (let index = 0; index < points.length; index++) {
+          var pointCD = olProj.fromLonLat([points[index].lon,points[index].lat], 'EPSG:3857')
+           if (pointCD[0] === coordinates[0] &&
+               pointCD[1] === coordinates[1]) {
+                return styles;
+              }
+        }
+      }
+        return new Style();
       },
     });
 
@@ -181,7 +151,7 @@ export class HomeComponent implements OnInit {
       source: new VectorSource({
         features: initialBorder,
       }),
-      style: function (feature) {
+      style: function () {
         return initialBorderStyles;
       },
     });
@@ -190,7 +160,7 @@ export class HomeComponent implements OnInit {
       source: new VectorSource({
         features: finalBorder,
       }),
-      style: function (feature) {
+      style: function () {
         return finalBorderStyles;
       },
     });
@@ -199,15 +169,17 @@ export class HomeComponent implements OnInit {
       source: new VectorSource({
         features: lines,
       }),
-      style: function (feature) {
+      style: function () {
         return lineStyles;
       },
     });
 
-    map.addLayer(vectorLayer);
-    map.addLayer(initialMarkersLayer);
-    map.addLayer(finalMarkersLayer);
-    map.addLayer(lineLayer);
+    if(this.map){
+      this.map.addLayer(vectorLayer);
+      this.map.addLayer(initialMarkersLayer);
+      this.map.addLayer(finalMarkersLayer);
+      this.map.addLayer(lineLayer);
+    }
   }
 
   private createLine(markers: Feature[]) {
@@ -232,11 +204,13 @@ export class HomeComponent implements OnInit {
     });
   }
 
-  public getFullRoute() {
-    if (this.selectedRoute) {
-      this.bus.getFullRoute(this.selectedRoute.id).subscribe((data: Route) => {
+  public getFullRoute(route:Route) {
+    if (route) {
+        this.bus.getFullRoute(route.id).subscribe((data: Route) => {
         this.selectedRoute = data;
+        this.getBusLine();
       });
+
     }
   }
 

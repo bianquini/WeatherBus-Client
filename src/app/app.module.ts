@@ -5,6 +5,7 @@ import { AppRoutingModule } from './app-routing.module';
 import { AppComponent } from './app.component';
 import { BrowserAnimationsModule } from '@angular/platform-browser/animations';
 import { HttpClientModule } from '@angular/common/http';
+import { FormsModule } from '@angular/forms';
 
 import { MatSidenavModule } from '@angular/material/sidenav'
 import { MatIconModule } from '@angular/material/icon';
@@ -26,7 +27,8 @@ import {MatSelectModule} from '@angular/material/select';
     MatIconModule,
     HttpClientModule,
     MatButtonModule,
-    MatSelectModule
+    MatSelectModule,
+    FormsModule
   ],
   providers: [],
   bootstrap: [AppComponent]

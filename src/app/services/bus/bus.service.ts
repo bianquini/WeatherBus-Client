@@ -18,6 +18,6 @@ export class BusService {
   }
 
   public getFullRoute(routeId: string): Observable<Route> {
-    return this.http.get<Route>(`${url}/bus/getFullRoute/${routeId}`);
+    return this.http.get<Route>(`${url}/bus/getFullRouteById/${routeId}`);
   }
 }
