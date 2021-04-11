@@ -4,4 +4,5 @@ export interface Point {
   lat:number;
   lon:number;
   stopName: string;
+  stopId: number;
 }

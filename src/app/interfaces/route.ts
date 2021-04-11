@@ -5,6 +5,6 @@ export interface Route {
   id: string;
   name: string;
   direction: string;
-  bus: Bus;
+  routeBus: Bus;
   points: Point[];
 }

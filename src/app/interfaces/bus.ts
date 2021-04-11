@@ -14,5 +14,5 @@ export interface Bus {
 
   IsDelayed: boolean;
 
-  Predictions: Prediction[];
+  predictions: Prediction[];
 }

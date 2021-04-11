@@ -15,6 +15,12 @@ import { Circle as CircleStyle, Fill, Stroke } from 'ol/style';
 import { Route } from 'src/app/interfaces/route';
 import LineString from 'ol/geom/LineString';
 import Overlay from 'ol/Overlay';
+import BaseLayer from 'ol/layer/Base';
+import { Coordinate } from 'ol/coordinate';
+import { Prediction } from 'src/app/interfaces/prediction';
+
+import { Pipe, PipeTransform } from '@angular/core';
+
 
 @Component({
   selector: 'app-home',
@@ -26,11 +32,11 @@ export class HomeComponent implements OnInit {
   map: Map | undefined;
   container: HTMLElement | undefined;
   content: HTMLElement | undefined;
-  //TODO retornar Route para tipo ROute
   routes: Route[] = [];
   selectedRoute: Route | undefined;
   hasToSelect: boolean = false;
   hasSelectedFirst: boolean = false;
+  date: Date = new Date();
 
   constructor(private bus: BusService) {}
 
@@ -43,6 +49,7 @@ export class HomeComponent implements OnInit {
       layers: [
         new TileLayer({
           source: new OSM(),
+          className: 'mapLayer'
         }),
       ],
       view: new View({
@@ -50,6 +57,7 @@ export class HomeComponent implements OnInit {
         center: [-87.61439, 41.73271],
         zoom: 11,
       }),
+
     });
 
     var overlay = new Overlay({
@@ -131,20 +139,25 @@ export class HomeComponent implements OnInit {
         var point = <Point>feature.getGeometry();
         var coordinates = point.getCoordinates();
         if (points) {
-          /*TODO verificar logica abaixo */
           for (let index = 0; index < points.length; index++) {
-            var pointCD = [points[index].lon, points[index].lat];
-            if (
-              pointCD[0] === coordinates[0] &&
-              pointCD[1] === coordinates[1]
-            ) {
-              return styles;
+            if (points[index].stopName) {
+              var pointCD = [points[index].lon, points[index].lat];
+              if (
+                pointCD[0] === coordinates[0] &&
+                pointCD[1] === coordinates[1]
+              ) {
+                return styles;
+              }
             }
           }
         }
         return new Style();
       },
+      className: 'vectorLayer'
     });
+
+
+
 
     var initialMarkersLayer = new VectorLayer({
       source: new VectorSource({
@@ -153,7 +166,9 @@ export class HomeComponent implements OnInit {
       style: function () {
         return initialBorderStyles;
       },
+      className: 'initialMarkersLayer'
     });
+
 
     var finalMarkersLayer = new VectorLayer({
       source: new VectorSource({
@@ -162,7 +177,9 @@ export class HomeComponent implements OnInit {
       style: function () {
         return finalBorderStyles;
       },
+      className: 'finalMarkersLayer'
     });
+
 
     var lineLayer = new VectorLayer({
       source: new VectorSource({
@@ -171,13 +188,17 @@ export class HomeComponent implements OnInit {
       style: function () {
         return lineStyles;
       },
+      className: 'lineLayer',
     });
+
+
 
     if (this.map) {
       this.map.addLayer(vectorLayer);
       this.map.addLayer(initialMarkersLayer);
       this.map.addLayer(finalMarkersLayer);
       this.map.addLayer(lineLayer);
+
     }
   }
 
@@ -204,13 +225,24 @@ export class HomeComponent implements OnInit {
   }
 
   public getFullRoute(route: Route) {
+    var reverse: BaseLayer[] = [];
+    for (let index = 0; index < this.map?.getLayers().getLength()!; index++) {
+      reverse[index] = this.map?.getLayers().item(this.map?.getLayers().getLength() - index)!;
+    }
+
+    reverse.forEach((layer:BaseLayer) => {
+      if (layer != undefined) {
+        if (layer.getClassName() != 'mapLayer'){
+          this.map?.removeLayer(layer);
+        }
+      }
+    });
     this.selectedRoute = route;
-    console.log(this.selectedRoute);
     this.getBusLine();
   }
 
-  public teste(ev: MouseEvent) {
-    this.map?.on('singleclick', (evt) => {
+  public getSelectedPoint(ev: MouseEvent) {
+    this.map?.on('singleclick', async (evt) => {
       var feature = this.map?.forEachFeatureAtPixel(
         evt.pixel,
         function (mapFeature) {
@@ -220,22 +252,37 @@ export class HomeComponent implements OnInit {
       if (feature && this.map != null) {
         var point = <Point>feature.getGeometry();
         var coordinates = point.getCoordinates();
+        var prediction = await this.getBusStopPrediction(coordinates);
+
         var mapView = this.map.getView();
         mapView.animate({ zoom: 17, center: evt.coordinate });
         this.map.getOverlayById(1).setPosition(coordinates);
         if (this.content) {
-          this.content.innerHTML = `<h2 class="popup_data">Hoje</h2>
-        <h3 class="popup_data">Clima: Ensolarado</h3>
-        <h3 class="popup_data">Possível horário de chegada: 15:35</h3>
-        <h3 class="popup_data">Possível atraso (em min): 20</h3>
-        <h2 class="popup_data">02/04</h2>
-        <h3 class="popup_data">Clima: Ensolarado</h3>
-        <h3 class="popup_data">Possível horário de chegada: 15:32</h3>
-        <h3 class="popup_data">Possível atraso (em min): 10</h3>`;
+          this.content.innerHTML = `
+          <h2 class="popup_data">Parada: ${prediction?.stopName}</h3>
+          <h2 class="popup_data">Hoje</h2>
+          <h3 class="popup_data">Clima: Ensolarado</h3>
+          <h3 class="popup_data">Possível horário de chegada: ${prediction?.timestamp} </h3>
+          <h2 class="popup_data">02/04</h2>
+          <h3 class="popup_data">Clima: Ensolarado</h3>
+          <h3 class="popup_data">Possível horário de chegada: 15:32</h3>`;
         }
       } else {
         this.map?.getOverlayById(1).setPosition(undefined);
       }
     });
+  }
+
+  private async getBusStopPrediction(coordinates: Coordinate): Promise<Prediction | null>{
+    var points = this.selectedRoute?.points;
+    if(points){
+      for (let index = 0; index < points.length!; index++) {
+        if (points[index].stopName &&
+          (points[index].lon == coordinates[0] && points[index].lat == coordinates[1])) {
+            return await this.bus.getPredictionByStopId(points[index].stopId).toPromise();
+          }
+      }
+    }
+  return null;
   }
 }
