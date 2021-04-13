@@ -20,6 +20,7 @@ import { Coordinate } from 'ol/coordinate';
 import { Prediction } from 'src/app/interfaces/prediction';
 
 import { Pipe, PipeTransform } from '@angular/core';
+import * as moment from 'moment';
 
 
 @Component({
@@ -253,6 +254,11 @@ export class HomeComponent implements OnInit {
         var point = <Point>feature.getGeometry();
         var coordinates = point.getCoordinates();
         var prediction = await this.getBusStopPrediction(coordinates);
+        var predictionTime = (moment(prediction?.timestamp.toString())).format("hh:mm DD/MM/yyyy") ;
+        var predictionTimeYesterday = (moment(prediction?.timestamp.toString())).subtract(1,"d").format("hh:mm DD/MM/yyyy") ;
+
+
+        var yesterdayDate = (moment(new Date())).subtract(1,"day").format("DD/MM").toString();
 
         var mapView = this.map.getView();
         mapView.animate({ zoom: 17, center: evt.coordinate });
@@ -262,10 +268,10 @@ export class HomeComponent implements OnInit {
           <h2 class="popup_data">Parada: ${prediction?.stopName}</h3>
           <h2 class="popup_data">Hoje</h2>
           <h3 class="popup_data">Clima: Ensolarado</h3>
-          <h3 class="popup_data">Possível horário de chegada: ${prediction?.timestamp} </h3>
-          <h2 class="popup_data">02/04</h2>
+          <h3 class="popup_data">Possível horário de chegada: <p> ${predictionTime} </p></h3>
+          <h2 class="popup_data">${yesterdayDate}</h2>
           <h3 class="popup_data">Clima: Ensolarado</h3>
-          <h3 class="popup_data">Possível horário de chegada: 15:32</h3>`;
+          <h3 class="popup_data">Possível horário de chegada: <p> ${predictionTimeYesterday}  </p></h3>`;
         }
       } else {
         this.map?.getOverlayById(1).setPosition(undefined);
