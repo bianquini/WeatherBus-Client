@@ -7,4 +7,5 @@ export interface Route {
   direction: string;
   routeBus: Bus;
   points: Point[];
+  weather_point: number;
 }

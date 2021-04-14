@@ -5,7 +5,6 @@ import View from 'ol/View';
 import VectorLayer from 'ol/layer/Vector';
 import Style from 'ol/style/Style';
 import OSM from 'ol/source/OSM';
-import * as olProj from 'ol/proj';
 import TileLayer from 'ol/layer/Tile';
 import { BusService } from 'src/app/services/bus/bus.service';
 import Feature from 'ol/Feature';
@@ -19,9 +18,9 @@ import BaseLayer from 'ol/layer/Base';
 import { Coordinate } from 'ol/coordinate';
 import { Prediction } from 'src/app/interfaces/prediction';
 
-import { Pipe, PipeTransform } from '@angular/core';
 import * as moment from 'moment';
-
+import { Weather } from 'src/app/interfaces/weather';
+import { WeatherService } from 'src/app/services/weather/weather.service';
 
 @Component({
   selector: 'app-home',
@@ -34,12 +33,17 @@ export class HomeComponent implements OnInit {
   container: HTMLElement | undefined;
   content: HTMLElement | undefined;
   routes: Route[] = [];
+  weather: Weather | undefined;
+  yesterdayWeather: Weather | undefined;
   selectedRoute: Route | undefined;
   hasToSelect: boolean = false;
   hasSelectedFirst: boolean = false;
   date: Date = new Date();
 
-  constructor(private bus: BusService) {}
+  constructor(
+    private busService: BusService,
+    private weatherService: WeatherService
+  ) {}
 
   ngOnInit() {
     this.getRoutes();
@@ -50,7 +54,7 @@ export class HomeComponent implements OnInit {
       layers: [
         new TileLayer({
           source: new OSM(),
-          className: 'mapLayer'
+          className: 'mapLayer',
         }),
       ],
       view: new View({
@@ -58,7 +62,6 @@ export class HomeComponent implements OnInit {
         center: [-87.61439, 41.73271],
         zoom: 11,
       }),
-
     });
 
     var overlay = new Overlay({
@@ -154,11 +157,8 @@ export class HomeComponent implements OnInit {
         }
         return new Style();
       },
-      className: 'vectorLayer'
+      className: 'vectorLayer',
     });
-
-
-
 
     var initialMarkersLayer = new VectorLayer({
       source: new VectorSource({
@@ -167,9 +167,8 @@ export class HomeComponent implements OnInit {
       style: function () {
         return initialBorderStyles;
       },
-      className: 'initialMarkersLayer'
+      className: 'initialMarkersLayer',
     });
-
 
     var finalMarkersLayer = new VectorLayer({
       source: new VectorSource({
@@ -178,9 +177,8 @@ export class HomeComponent implements OnInit {
       style: function () {
         return finalBorderStyles;
       },
-      className: 'finalMarkersLayer'
+      className: 'finalMarkersLayer',
     });
-
 
     var lineLayer = new VectorLayer({
       source: new VectorSource({
@@ -192,15 +190,23 @@ export class HomeComponent implements OnInit {
       className: 'lineLayer',
     });
 
-
-
     if (this.map) {
       this.map.addLayer(vectorLayer);
       this.map.addLayer(initialMarkersLayer);
       this.map.addLayer(finalMarkersLayer);
       this.map.addLayer(lineLayer);
-
     }
+  }
+
+  private getWeather() {
+    this.weatherService.getCurrentWeather().subscribe((data: Weather) => {
+      this.weather = data;
+    });
+  }
+  private getYesterdayWeather() {
+    this.weatherService.getYesterdayWeather().subscribe((data: Weather) => {
+      this.yesterdayWeather = data;
+    });
   }
 
   private createLine(markers: Feature[]) {
@@ -220,7 +226,7 @@ export class HomeComponent implements OnInit {
   }
 
   public getRoutes() {
-    this.bus.getRoutes().subscribe((data: Route[]) => {
+    this.busService.getRoutes().subscribe((data: Route[]) => {
       data.forEach((x) => this.routes.push(x));
     });
   }
@@ -228,17 +234,21 @@ export class HomeComponent implements OnInit {
   public getFullRoute(route: Route) {
     var reverse: BaseLayer[] = [];
     for (let index = 0; index < this.map?.getLayers().getLength()!; index++) {
-      reverse[index] = this.map?.getLayers().item(this.map?.getLayers().getLength() - index)!;
+      reverse[index] = this.map
+        ?.getLayers()
+        .item(this.map?.getLayers().getLength() - index)!;
     }
 
-    reverse.forEach((layer:BaseLayer) => {
+    reverse.forEach((layer: BaseLayer) => {
       if (layer != undefined) {
-        if (layer.getClassName() != 'mapLayer'){
+        if (layer.getClassName() != 'mapLayer') {
           this.map?.removeLayer(layer);
         }
       }
     });
     this.selectedRoute = route;
+    this.getWeather();
+    this.getYesterdayWeather();
     this.getBusLine();
   }
 
@@ -254,11 +264,17 @@ export class HomeComponent implements OnInit {
         var point = <Point>feature.getGeometry();
         var coordinates = point.getCoordinates();
         var prediction = await this.getBusStopPrediction(coordinates);
-        var predictionTime = (moment(prediction?.timestamp.toString())).format("hh:mm DD/MM/yyyy") ;
-        var predictionTimeYesterday = (moment(prediction?.timestamp.toString())).subtract(1,"d").format("hh:mm DD/MM/yyyy") ;
+        var predictionTime = moment(prediction?.timestamp.toString()).format(
+          'hh:mm DD/MM/yyyy'
+        );
+        var predictionTimeYesterday = moment(prediction?.timestamp.toString())
+          .subtract(1, 'd')
+          .format('hh:mm DD/MM/yyyy');
 
-
-        var yesterdayDate = (moment(new Date())).subtract(1,"day").format("DD/MM").toString();
+        var yesterdayDate = moment(new Date())
+          .subtract(1, 'day')
+          .format('DD/MM')
+          .toString();
 
         var mapView = this.map.getView();
         mapView.animate({ zoom: 17, center: evt.coordinate });
@@ -267,11 +283,29 @@ export class HomeComponent implements OnInit {
           this.content.innerHTML = `
           <h2 class="popup_data">Parada: ${prediction?.stopName}</h3>
           <h2 class="popup_data">Hoje</h2>
-          <h3 class="popup_data">Clima: Ensolarado</h3>
-          <h3 class="popup_data">Possível horário de chegada: <p> ${predictionTime} </p></h3>
+          <h3 class="popup_data">Clima: ${this.weather?.WeatherText}</h3>
+          <h3 class="popup_data">Precipitação: ${
+            this.weather?.HasPrecipitation
+              ? this.weather?.PrecipitationType
+              : 'Não há precipitação'
+          }</h3>
+          <h3 class="popup_data">Temperatura: ${
+            this.weather?.celsiusTemperature
+          } C° </h3>
+          <h3 class="popup_data">Possível horário de chegada: ${predictionTime}</h3>
           <h2 class="popup_data">${yesterdayDate}</h2>
-          <h3 class="popup_data">Clima: Ensolarado</h3>
-          <h3 class="popup_data">Possível horário de chegada: <p> ${predictionTimeYesterday}  </p></h3>`;
+          <h3 class="popup_data">Clima: ${
+            this.yesterdayWeather?.WeatherText
+          }</h3>
+          <h3 class="popup_data">Precipitação: ${
+            this.yesterdayWeather?.HasPrecipitation
+              ? this.yesterdayWeather?.PrecipitationType
+              : 'Não há precipitação'
+          }</h3>
+          <h3 class="popup_data">Temperatura: ${
+            this.yesterdayWeather?.celsiusTemperature
+          } C° </h3>
+          <h3 class="popup_data">Horário de chegada: ${predictionTimeYesterday}  </h3>`;
         }
       } else {
         this.map?.getOverlayById(1).setPosition(undefined);
@@ -279,16 +313,23 @@ export class HomeComponent implements OnInit {
     });
   }
 
-  private async getBusStopPrediction(coordinates: Coordinate): Promise<Prediction | null>{
+  private async getBusStopPrediction(
+    coordinates: Coordinate
+  ): Promise<Prediction | null> {
     var points = this.selectedRoute?.points;
-    if(points){
+    if (points) {
       for (let index = 0; index < points.length!; index++) {
-        if (points[index].stopName &&
-          (points[index].lon == coordinates[0] && points[index].lat == coordinates[1])) {
-            return await this.bus.getPredictionByStopId(points[index].stopId).toPromise();
-          }
+        if (
+          points[index].stopName &&
+          points[index].lon == coordinates[0] &&
+          points[index].lat == coordinates[1]
+        ) {
+          return await this.busService
+            .getPredictionByStopId(points[index].stopId)
+            .toPromise();
+        }
       }
     }
-  return null;
+    return null;
   }
 }
